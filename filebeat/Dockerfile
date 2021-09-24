@@ -1,0 +1,2 @@
+ARG ELK_VERSION=7.6.1
+FROM elastic/filebeat:${ELK_VERSION}

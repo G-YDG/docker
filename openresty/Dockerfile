@@ -1,0 +1,2 @@
+ARG OPEN_RESTY_VERSION
+FROM openresty/openresty:${OPEN_RESTY_VERSION}

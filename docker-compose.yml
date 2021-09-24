@@ -1,0 +1,139 @@
+version: '3.4'
+
+networks:
+  service:
+    driver: ${NETWORKS_DRIVER}
+
+volumes:
+  mysql:
+    driver: ${VOLUMES_DRIVER}
+  elasticsearch:
+    driver: ${VOLUMES_DRIVER}
+  logstash:
+    driver: ${VOLUMES_DRIVER}
+  kibana:
+    driver: ${VOLUMES_DRIVER}
+  filebeat:
+    driver: ${VOLUMES_DRIVER}
+  openresty:
+    driver: ${VOLUMES_DRIVER}
+
+services:
+  ### MySQL ################################################
+  mysql:
+    build:
+      context: ./mysql
+      args:
+        - MYSQL_VERSION=${MYSQL_VERSION}
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./data:/home/data
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+      - ./mysql/conf.d:/etc/mysql/conf.d
+      - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+    ports:
+      - "${MYSQL_PORT}:3306"
+    restart: always
+    networks:
+      - service
+
+  ### ElasticSearch ########################################
+  elasticsearch:
+    build:
+      context: ./elasticsearch
+      args:
+        - ELK_VERSION=${ELK_VERSION}
+    volumes:
+      - ./data:/home/data
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+    environment:
+      - cluster.name=cluster
+      - node.name=node
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.initial_master_nodes=node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ELASTICSEARCH_HOST_HTTP_PORT}:9200"
+      - "${ELASTICSEARCH_HOST_TRANSPORT_PORT}:9300"
+    restart: always
+    networks:
+      - service
+
+  ### Logstash ##############################################
+  logstash:
+    build:
+      context: ./logstash
+      args:
+        - ELK_VERSION=${ELK_VERSION}
+    volumes:
+      - ./data:/home/data
+      - './logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml'
+      - './logstash/pipeline:/usr/share/logstash/pipeline'
+      - './logstash/GeoLite2-City:/usr/share/logstash/GeoLite2-City'
+    ports:
+      - '5001:5001'
+      - '5044:5044'
+    environment:
+      LS_JAVA_OPTS: '-Xmx1g -Xms1g'
+    env_file:
+      - .env
+    networks:
+      - service
+    restart: always
+    depends_on:
+      - elasticsearch
+
+  ### Kibana ##############################################
+  kibana:
+    build:
+      context: ./kibana
+      args:
+        - ELK_VERSION=${ELK_VERSION}
+    volumes:
+      - ./data:/home/data
+      - ./kibana/config:/usr/share/kibana/config
+    ports:
+      - "${KIBANA_HTTP_PORT}:5601"
+    depends_on:
+      - elasticsearch
+    restart: always
+    networks:
+      - service
+
+  ### FileBeat #############################################
+  filebeat:
+    build:
+      context: ./filebeat
+    user: root
+    command:
+      - "-e"
+      - "--strict.perms=false"
+    volumes:
+      - './filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml'
+      - '/d/phpstudy_pro/WWW/log:/log'
+    networks:
+      - service
+    restart: always
+
+  ### OpenResty #############################################
+  openresty:
+    build:
+      context: ./openresty
+    volumes:
+      - ./openresty/conf.d:/etc/nginx/conf.d
+    ports:
+      - '80:80'
+      - '443:443'
+    networks:
+      - service
+    restart: always

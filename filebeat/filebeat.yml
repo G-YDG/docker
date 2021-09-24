@@ -1,0 +1,31 @@
+filebeat.inputs:
+  ##### nginx-access-log ###########
+  - type: log
+    enabled: true
+    paths:
+      - "/log/access_log.log"
+    fields:
+      type: nginx-access-log
+    fields_under_root: true
+  ##### nginx-error-log ###########
+  - type: log
+    enabled: true
+    paths:
+      - "/log/log.log"
+    fields:
+      type: nginx-error-log
+    fields_under_root: true
+
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+processors:
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+#----------------------------- Logstash output --------------------------------
+output.logstash:
+  # The Logstash hosts
+  hosts: ["logstash:5044"]
