@@ -32,7 +32,7 @@ services:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - TZ=${TIMEZONE}
     volumes:
-      - ./data:/home/data
+      - ./shell:/home/shell
       - ./mysql/data:/var/lib/mysql
       - ./mysql/my.cnf:/etc/mysql/my.cnf
       - ./mysql/conf.d:/etc/mysql/conf.d
