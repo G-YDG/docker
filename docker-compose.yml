@@ -35,7 +35,6 @@ services:
       - ./shell:/home/shell
       - ./mysql/data:/var/lib/mysql
       - ./mysql/my.cnf:/etc/mysql/my.cnf
-      - ./mysql/conf.d:/etc/mysql/conf.d
       - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
     ports:
       - "${MYSQL_PORT}:3306"
